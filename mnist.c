@@ -134,6 +134,11 @@ int mnist_load_labels(const char *path, MnistLabels *out)
     }
 
     /* Allocate and read label bytes */
+    if (count == 0)
+    {
+        fclose(f);
+        return EINVAL;
+    }
     out->labels = malloc(count);
     if (!out->labels)
     {
@@ -178,7 +183,7 @@ int mnist_ascii_buffer_size(const MnistImages *images, size_t *out_size)
         return EOVERFLOW;
     }
     size_t pixels = (size_t)images->rows * images->cols;
-    if (images->rows > SIZE_MAX - pixels - 1)
+    if (pixels > SIZE_MAX - images->rows - 1)
     {
         return EOVERFLOW;
     }

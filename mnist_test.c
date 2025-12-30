@@ -43,11 +43,11 @@ static void write_be32(FILE *f, uint32_t value)
 }
 
 static int create_images_file(uint32_t magic, uint32_t count, uint32_t rows, uint32_t cols,
-                              const uint8_t *pixels, size_t pixel_count, char *out_path,
-                              size_t out_size)
+                              const uint8_t *pixels, size_t pixel_count, int enforce_size,
+                              char *out_path, size_t out_size)
 {
     size_t expected = (size_t)count * rows * cols;
-    if (expected != pixel_count)
+    if (enforce_size && expected != pixel_count)
     {
         return EINVAL;
     }
@@ -79,7 +79,7 @@ static int create_images_file(uint32_t magic, uint32_t count, uint32_t rows, uin
 }
 
 static int create_labels_file(uint32_t magic, uint32_t count, const uint8_t *labels,
-                              char *out_path, size_t out_size)
+                              size_t label_bytes, char *out_path, size_t out_size)
 {
     char tmpl[] = "tmp-labels-XXXXXX";
     int fd = mkstemp(tmpl);
@@ -97,7 +97,7 @@ static int create_labels_file(uint32_t magic, uint32_t count, const uint8_t *lab
 
     write_be32(f, magic);
     write_be32(f, count);
-    fwrite(labels, 1, count, f);
+    fwrite(labels, 1, label_bytes, f);
     fclose(f);
 
     strncpy(out_path, tmpl, out_size);
@@ -112,9 +112,9 @@ static void test_load_and_render(void)
     char img_path[64];
     char lbl_path[64];
 
-    int err = create_images_file(2051, 1, 2, 2, pixels, sizeof(pixels), img_path, sizeof(img_path));
+    int err = create_images_file(2051, 1, 2, 2, pixels, sizeof(pixels), 1, img_path, sizeof(img_path));
     ASSERT_EQ(0, err, "%d");
-    err = create_labels_file(2049, 1, labels, lbl_path, sizeof(lbl_path));
+    err = create_labels_file(2049, 1, labels, sizeof(labels), lbl_path, sizeof(lbl_path));
     ASSERT_EQ(0, err, "%d");
 
     MnistImages images;
@@ -158,7 +158,7 @@ static void test_rejects_bad_magic(void)
     uint8_t pixels[] = {0, 1, 2, 3};
     char img_path[64];
 
-    int err = create_images_file(9999, 1, 2, 2, pixels, sizeof(pixels), img_path, sizeof(img_path));
+    int err = create_images_file(9999, 1, 2, 2, pixels, sizeof(pixels), 1, img_path, sizeof(img_path));
     ASSERT_EQ(0, err, "%d");
 
     MnistImages images;
@@ -166,6 +166,52 @@ static void test_rejects_bad_magic(void)
     ASSERT_TRUE(err == EINVAL, "expected EINVAL for bad magic");
 
     remove(img_path);
+}
+
+static void test_rejects_truncated_images(void)
+{
+    uint8_t pixels[] = {0, 1, 2}; /* should be 4 bytes for 1x2x2 image */
+    char img_path[64];
+
+    int err = create_images_file(2051, 1, 2, 2, pixels, sizeof(pixels), 0, img_path, sizeof(img_path));
+    ASSERT_EQ(0, err, "%d");
+
+    MnistImages images;
+    err = mnist_load_images(img_path, &images);
+    ASSERT_TRUE(err == EIO, "expected EIO for truncated image data");
+
+    remove(img_path);
+}
+
+static void test_rejects_truncated_labels(void)
+{
+    uint8_t labels[] = {1};
+    char lbl_path[64];
+
+    /* Header says 2 labels, but we only write 1 byte of data */
+    int err = create_labels_file(2049, 2, labels, 1, lbl_path, sizeof(lbl_path));
+    ASSERT_EQ(0, err, "%d");
+
+    MnistLabels lbls;
+    err = mnist_load_labels(lbl_path, &lbls);
+    ASSERT_TRUE(err == EIO, "expected EIO for truncated labels");
+
+    remove(lbl_path);
+}
+
+static void test_rejects_zero_label_count(void)
+{
+    uint8_t labels[] = {0};
+    char lbl_path[64];
+
+    int err = create_labels_file(2049, 0, labels, sizeof(labels), lbl_path, sizeof(lbl_path));
+    ASSERT_EQ(0, err, "%d");
+
+    MnistLabels lbls;
+    err = mnist_load_labels(lbl_path, &lbls);
+    ASSERT_TRUE(err == EINVAL, "expected EINVAL for zero label count");
+
+    remove(lbl_path);
 }
 
 static void run_test(const char *name, void (*fn)(void))
@@ -187,6 +233,9 @@ int main(void)
 {
     run_test("load_and_render", test_load_and_render);
     run_test("rejects_bad_magic", test_rejects_bad_magic);
+    run_test("rejects_truncated_images", test_rejects_truncated_images);
+    run_test("rejects_truncated_labels", test_rejects_truncated_labels);
+    run_test("rejects_zero_label_count", test_rejects_zero_label_count);
 
     if (failures)
     {
