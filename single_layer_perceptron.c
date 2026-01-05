@@ -153,13 +153,14 @@ int main(void) {
     // Training data:
     // X[i] = input features for example i
     // y[i] = correct output for example i
-    double X[N][D] = {
+    /* Use compile-time macros for array sizes so static initialization is allowed */
+    double X[NUM_SAMPLES][NUM_FEATURES] = {
         {0, 0},  // Input: both false -> Output: false (0)
         {0, 1},  // Input: first false, second true -> Output: true (1)
         {1, 0},  // Input: first true, second false -> Output: true (1)
         {1, 1}   // Input: both true -> Output: true (1)
     };
-    double y[N] = {0, 1, 1, 1};
+    double y[NUM_SAMPLES] = {0, 1, 1, 1};
 
     // -------------------------------------------------------------------------
     // STEP 2: INITIALIZE MODEL PARAMETERS
@@ -177,6 +178,9 @@ int main(void) {
     printf("  Learning rate: %.2f\n", LEARNING_RATE);
     printf("  Epochs: %d\n", EPOCHS);
     printf("  Dataset: OR gate (%d samples, %d features)\n\n", N, D);
+
+    // Print CSV header for easy logging/plotting tools
+    printf("epoch,loss\n");
 
     // -------------------------------------------------------------------------
     // STEP 3: TRAINING LOOP (Learning Phase)
@@ -222,6 +226,8 @@ int main(void) {
             printf("Epoch %4d | Loss: %.6f | w=(%.3f, %.3f) | b=%.3f\n",
                    e, loss / N, w[0], w[1], b);
         }
+        // Also emit a CSV line every epoch for logging/plotting
+        printf("%d,%.6f\n", e, loss / N);
     }
 
     // -------------------------------------------------------------------------

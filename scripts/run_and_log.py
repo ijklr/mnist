@@ -11,6 +11,8 @@ import os
 import sys
 
 RE_EPOCH = re.compile(r"Epoch\s*(\d+)\s*\|\s*Loss:\s*([0-9eE+\-\.]+)")
+# Also accept simple CSV lines like: 0,0.123456
+RE_CSV = re.compile(r"^\s*(\d+)\s*,\s*([0-9eE+\-\.]+)\s*$")
 
 
 def main():
@@ -33,6 +35,12 @@ def main():
                 epoch = int(m.group(1))
                 loss = float(m.group(2))
                 rows.append((epoch, loss))
+            else:
+                m2 = RE_CSV.search(line)
+                if m2:
+                    epoch = int(m2.group(1))
+                    loss = float(m2.group(2))
+                    rows.append((epoch, loss))
     except KeyboardInterrupt:
         proc.kill()
         raise
