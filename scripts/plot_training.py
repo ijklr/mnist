@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("csv", help="Path to CSV file with columns: epoch,loss")
-    p.add_argument("--out", default="plots/loss.png", help="Output image path")
+    p.add_argument("--out", default="plots/single_layer_loss.png", help="Output image path")
+    p.add_argument("--title", default="Single-layer Perceptron Training Loss", help="Plot title")
+    p.add_argument("--subtitle", default="", help="Subtitle or hyperparams to show on the plot")
     args = p.parse_args()
 
     epochs = []
@@ -28,7 +30,10 @@ def main():
     plt.plot(epochs, losses, marker=".")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title("Training Loss")
+    plt.title(args.title)
+    # Optional subtitle / hyperparameter text below the title
+    if args.subtitle:
+        plt.figtext(0.5, 0.92, args.subtitle, ha='center', fontsize=9)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(args.out)

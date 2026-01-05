@@ -18,7 +18,7 @@ log: build
 	@python scripts/run_and_log.py --exe ./$(TARGET) --out logs/training.csv
 
 plot:
-	@python scripts/plot_training.py logs/training.csv
+	@python scripts/plot_training.py logs/training.csv --out plots/single_layer_loss.png --title "Single-layer Perceptron Training Loss" --subtitle "Single-layer Perceptron — LR=0.1, Epochs=2000"
 
 clean:
 	rm -f $(TARGET) logs/*.csv plots/*.png
