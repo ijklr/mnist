@@ -153,7 +153,7 @@ int main(void) {
     // Training data:
     // X[i] = input features for example i
     // y[i] = correct output for example i
-    /* Use compile-time macros for array sizes so static initialization is allowed */
+    /* Using macros for array sizes allows static initialization in C89/C90 */
     double X[NUM_SAMPLES][NUM_FEATURES] = {
         {0, 0},  // Input: both false -> Output: false (0)
         {0, 1},  // Input: first false, second true -> Output: true (1)
@@ -178,9 +178,6 @@ int main(void) {
     printf("  Learning rate: %.2f\n", LEARNING_RATE);
     printf("  Epochs: %d\n", EPOCHS);
     printf("  Dataset: OR gate (%d samples, %d features)\n\n", N, D);
-
-    // Print CSV header for easy logging/plotting tools
-    printf("epoch,loss\n");
 
     // -------------------------------------------------------------------------
     // STEP 3: TRAINING LOOP (Learning Phase)
@@ -226,8 +223,6 @@ int main(void) {
             printf("Epoch %4d | Loss: %.6f | w=(%.3f, %.3f) | b=%.3f\n",
                    e, loss / N, w[0], w[1], b);
         }
-        // Also emit a CSV line every epoch for logging/plotting
-        printf("%d,%.6f\n", e, loss / N);
     }
 
     // -------------------------------------------------------------------------
@@ -250,7 +245,7 @@ int main(void) {
         int pred = predict(X[i], w, b, D);      // Get binary prediction
 
         // Check if prediction matches the actual label
-        const char* result = (pred == (int)y[i]) ? "✓" : "✗";
+        const char* result = (pred == (int)y[i]) ? "[OK]" : "[FAIL]";
 
         printf("      (%.0f, %.0f)      |     %.4f     |      %d       |    %d   %s\n",
                X[i][0], X[i][1], y_hat, pred, (int)y[i], result);
@@ -301,4 +296,13 @@ int main(void) {
  * 6. ADD MORE FEATURES:
  *    - Try a 3-input logic gate with NUM_FEATURES = 3
  *    - You'll need 8 training examples (2^3 possible inputs)
+ *
+ * 7. TRY DIFFERENT ACTIVATION FUNCTIONS:
+ *    - Implement tanh: tanh(z) = (e^z - e^-z) / (e^z + e^-z)
+ *    - Implement ReLU: relu(z) = max(0, z)
+ *    - How do they affect convergence and final accuracy?
+ *
+ * 8. IMPLEMENT EARLY STOPPING:
+ *    - Stop training when loss falls below a threshold (e.g., 0.001)
+ *    - This prevents unnecessary computation and potential overfitting
  */
